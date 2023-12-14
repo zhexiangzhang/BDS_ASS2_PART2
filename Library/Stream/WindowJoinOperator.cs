@@ -22,6 +22,7 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
 
     // you can add more data structures here
     // ... ... ...
+    long lastAlignmentWM = Constants.initialWatermark;
     List<Event> tagStreamBuffer;
     List<Event> likeStreamBuffer;
 
@@ -92,6 +93,15 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
             // use maxWMInTagStream to prune the likeStreamBuffer
             if(e.timestamp < maxWMInTagStream - windowLength) likeStreamBuffer.RemoveAt(i);            
         }
+
+        long alignmentWM = Math.Min(maxWMInTagStream, maxWMInLikeStream);
+
+        if (alignmentWM > lastAlignmentWM) {            
+            lastAlignmentWM = alignmentWM;
+            // send the watermark to the downstream
+            // FIXME: confirm watermark timestamp ??
+            var watermark = Event.CreateEvent(lastAlignmentWM, EventType.Watermark, new byte[0]);
+            await outputStream.OnNextAsync(watermark);
     }
 
     async Task ProcessRegularEvent(Event e, int sourceID)
