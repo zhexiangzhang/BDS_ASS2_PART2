@@ -32,21 +32,31 @@ public static class Functions
         return joinedResult.Item1 < joinedResult.Item2;   // user likes the photo after he/she is tagged
     };
 
-    // public static Func<long, List<Event>, List<Event>> WindowAggregator = (timestamp, events) =>
-    // {
-    //     // loop through events and count likes that each photo received
-    //     var photoLikes = new Dictionary<int, MyCounter>();
-    //     foreach (var e in events)
-    //     {
-    //         var joinedResult = Event.GetContent<Tuple<long, long, int, int>>(e);
-    //         var photoID = joinedResult.Item3;
-    //         if (!photoLikes.ContainsKey(photoID))
-    //         {
-    //             photoLikes[photoID] = new MyCounter();
-    //         }
-    //         photoLikes[photoID].Increment();
-    //     }
-    // };
+    public static Func<long, List<Event>, List<Event>> WindowAggregator = (timestamp, events) =>
+    {
+        // loop through events and count likes that each photo received
+        var photoLikes = new Dictionary<int, MyCounter>();
+        foreach (var e in events)
+        {
+            var content = Event.GetContent<Tuple<long, long, int, int>>(e);
+            var photoID = content.Item3;
+            if (!photoLikes.ContainsKey(photoID))
+            {
+                photoLikes[photoID] = new MyCounter();
+            }
+            photoLikes[photoID].Increment();
+        }
+        // create output events
+        var outputEvents = new List<Event>();
+        foreach (var photoID in photoLikes.Keys)
+        {
+            var count = photoLikes[photoID].Get();
+            var content = new Tuple<int, int>(photoID, count);                    
+            var outputEvent = Event.CreateEvent(timestamp, EventType.Regular, content);            
+            outputEvents.Add(outputEvent);
+        }
+        return outputEvents;
+    };
 
     public static Func<string, Event, Null> Sink = (resultFile, e) =>
     {
@@ -54,10 +64,9 @@ public static class Functions
         {
             using (var file = new StreamWriter(resultFile, true))
             {
-                // var content = Event.GetContent<Tuple<int, int>>(e);
-                // Console.WriteLine($"output: ts = {e.timestamp}, photoID = {content.Item1}, count = {content.Item2}");
-                // file.WriteLine($"{content.Item1} {content.Item2}");
-                file.WriteLine($"{e.timestamp}");
+                var content = Event.GetContent<Tuple<int, int>>(e);
+                Console.WriteLine($"output: ts = {e.timestamp}, photoID = {content.Item1}, count = {content.Item2}");
+                file.WriteLine($"{content.Item1} {content.Item2}");                
             }
         }
         return null;

@@ -135,13 +135,13 @@ internal class StreamClient
         await filter.Init(joinedResultStream, filteredStream);
 
         // set up one windowed aggregate operator with one source stream
-        // var aggregate = client.GetGrain<IWindowAggregateOperator>("aggregate");
-        // var aggregatedStream = streamProvider.GetStream<Event>(StreamId.Create("aggregatedResult", Guid.NewGuid()));
-        // await aggregate.Init(joinedResultStream, aggregatedStream, windowSlide, windowLength);
+        var aggregate = client.GetGrain<IWindowAggregateOperator>("aggregate");
+        var aggregatedStream = streamProvider.GetStream<Event>(StreamId.Create("aggregatedResult", Guid.NewGuid()));
+        await aggregate.Init(filteredStream, aggregatedStream, windowSlide, windowLength);
 
         // set up one sink operator to write the result to a local file
         var sink = client.GetGrain<ISinkOperator>("sink");
-        await sink.Init(filteredStream, resultFile);
+        await sink.Init(aggregatedStream, resultFile);
 
         Console.WriteLine($"The query topology is built. ");
     }

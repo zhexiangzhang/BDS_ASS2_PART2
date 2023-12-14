@@ -48,7 +48,7 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
         {
             case EventType.Regular:
                 Debug.Assert(e.timestamp > maxReceivedWatermark[0]);
-                ProcessRegularEvent(e, 1);
+                await ProcessRegularEvent(e, 1);
                 break;
             case EventType.Watermark:
                 maxReceivedWatermark[0] = Math.Max(maxReceivedWatermark[0], e.timestamp);
@@ -65,7 +65,7 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
         {
             case EventType.Regular:
                 Debug.Assert(e.timestamp > maxReceivedWatermark[1]);
-                ProcessRegularEvent(e, 2);
+                await ProcessRegularEvent(e, 2);
                 break;
             case EventType.Watermark:
                 maxReceivedWatermark[1] = Math.Max(maxReceivedWatermark[1], e.timestamp);
@@ -82,6 +82,8 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
         long maxWMInTagStream = maxReceivedWatermark[0];
         long maxWMInLikeStream = maxReceivedWatermark[1];
         
+        // Console.WriteLine($"[New WaterMark] {maxWMInTagStream}, {maxWMInLikeStream}");
+
         for (int i=0; i < tagStreamBuffer.Count; i++){
             var e = tagStreamBuffer[i];
             // use maxWMInLikeStream to prune the tagStreamBuffer
@@ -100,8 +102,10 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
             lastAlignmentWM = alignmentWM;
             // send the watermark to the downstream
             // FIXME: confirm watermark timestamp ??
+            // Console.WriteLine($" ****** send WaterMark ******* {lastAlignmentWM}");
             var watermark = Event.CreateEvent(lastAlignmentWM, EventType.Watermark, new byte[0]);
             await outputStream.OnNextAsync(watermark);
+        }
     }
 
     async Task ProcessRegularEvent(Event e, int sourceID)
@@ -175,6 +179,7 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
                 // send the result to the output stream
                 if (joinedResult != null) {
                     // Console.WriteLine($"output: ts = {joinedResult.timestamp}");
+                    // Console.WriteLine($" ****** send event ******* {newTimestamp}, {Event.GetContent<Tuple<long, long, int, int>>(joinedResult)}");
                     await outputStream.OnNextAsync(joinedResult);                                                
                 }
                 j++;
