@@ -28,7 +28,7 @@ public static class Functions
     public static Func<Event, bool> Filter = e =>
     {
         // <ts: photo tagged the user, ts: user liked the photo, photo ID, user ID>
-        var joinedResult = Event.GetContent<Tuple<long, long, int, int>>(e);
+        var joinedResult = Event.GetContent<Tuple<long, long, int, int>>(e);        
         return joinedResult.Item1 < joinedResult.Item2;   // user likes the photo after he/she is tagged
     };
 

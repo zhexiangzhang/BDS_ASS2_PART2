@@ -63,17 +63,7 @@ internal sealed class WindowAggregateOperator : Grain, IWindowAggregateOperator
         // The aggregation result should be done on a per-window basis
         // Process aggregation only the current watermark can determine the entire window to be sent. 
         // Should not compare the watermark with the timestamp of a specific event.
-
-        // Console.WriteLine($"ProcessWatermark: ts = {timestamp}, maxReceivedWatermark = {maxReceivedWatermark}");
-        // if (timestamp <= maxReceivedWatermark) {
-        //     Console.WriteLine($"timestamp <= maxReceivedWatermark, return");
-        //     return;
-        // }
         
-        // maxReceivedWatermark = Math.Max(maxReceivedWatermark, timestamp);
-        // Console.WriteLine("");
-        // Console.WriteLine("-----------------------------------------------------------------");
-        // Console.WriteLine($"maxReceivedWatermark = {maxReceivedWatermark}");    
         // if maxReceivedWatermark > maxTimeStamp in the window = windowID + windowLength - 1, then we can aggregate the window
         var windowsIDs = streamBuffer.Keys;
         foreach (long id in windowsIDs)
@@ -88,8 +78,7 @@ internal sealed class WindowAggregateOperator : Grain, IWindowAggregateOperator
                 long newTimestamp = maxTimeStampInWindow;
                 List<Event> aggregated_result = Functions.WindowAggregator(newTimestamp, streamBuffer[id]);                
                 //send the window to the output stream
-                foreach (Event e in aggregated_result){
-                    // Console.WriteLine($"aggregated_result: ts = {e.timestamp}, content = {Event.GetContent<Tuple<int, int>>(e)}");
+                foreach (Event e in aggregated_result){                    
                     await outputStream.OnNextAsync(e);
                 }                
                 //remove the window from the dictionary
@@ -103,8 +92,7 @@ internal sealed class WindowAggregateOperator : Grain, IWindowAggregateOperator
     }
 
     async Task ProcessRegularEvent(Event e)
-    {
-        // Console.WriteLine($"ProcessRegularEvent: ts = {e.timestamp}, content = {Event.GetContent<Tuple<long, long, int, int>>(e)}");
+    {        
         long windowID = getWindowInstances(e.timestamp, windowSlide, windowLength);
         // insert into the buffer dictionary
         if (!streamBuffer.ContainsKey(windowID))

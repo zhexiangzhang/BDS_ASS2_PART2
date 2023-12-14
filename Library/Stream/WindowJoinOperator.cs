@@ -80,9 +80,7 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
     async Task ProcessWatermark()
     {
         long maxWMInTagStream = maxReceivedWatermark[0];
-        long maxWMInLikeStream = maxReceivedWatermark[1];
-        
-        // Console.WriteLine($"[New WaterMark] {maxWMInTagStream}, {maxWMInLikeStream}");
+        long maxWMInLikeStream = maxReceivedWatermark[1];            
 
         for (int i=0; i < tagStreamBuffer.Count; i++){
             var e = tagStreamBuffer[i];
@@ -101,8 +99,7 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
         if (alignmentWM > lastAlignmentWM) {            
             lastAlignmentWM = alignmentWM;
             // send the watermark to the downstream
-            // FIXME: confirm watermark timestamp ??
-            // Console.WriteLine($" ****** send WaterMark ******* {lastAlignmentWM}");
+            // FIXME: confirm watermark timestamp             
             var watermark = Event.CreateEvent(lastAlignmentWM, EventType.Watermark, new byte[0]);
             await outputStream.OnNextAsync(watermark);
         }
@@ -123,63 +120,31 @@ internal sealed class WindowJoinOperator : Grain, IWindowJoinOperator
             tagEvent = false;
             streamToJoin = tagStreamBuffer;                    
             eventType = "likeEvent";
-        }
-
-        // Console.WriteLine();
-        // Console.WriteLine("========================================================================================");
-        // Console.WriteLine($"[New Event] {eventType}, time = {e.timestamp}, content = {Event.GetContent<Tuple<int, int>>(e)}");
-
-        // Console.WriteLine();
-        // foreach (var e1 in streamToJoin) {
-        //     Console.WriteLine($"streamToJoin: {e1.timestamp}, {Event.GetContent<Tuple<int, int>>(e1)}");
-        // }
+        }        
         
         // get the substream that timestamp is between (e.timestamp - windowLength, e.timestamp + windowLength) use stream
         // eg. window instance [0, 6) , 0 and 6 are not included in same window instance
         var subStream = streamToJoin.Where(x => x.timestamp > e.timestamp - windowLength && x.timestamp < e.timestamp + windowLength);
 
-        // Console.WriteLine();
-        // foreach (var e1 in subStream) {
-        //     Console.WriteLine($"subStream: {e1.timestamp}, content = {Event.GetContent<Tuple<int, int>>(e1)}");
-        // }
-
         // get the window instances that the event belongs to
-        var e_WindowInstances = getWindowInstances(e.timestamp, windowSlide, windowLength);
-
-        // Console.WriteLine();
-        // Console.Write($"e_WindowInstances: ");
-        // foreach (var e1 in e_WindowInstances) {
-        //     Console.Write($" {e1} , ");
-        // }
-        // Console.WriteLine();
+        var e_WindowInstances = getWindowInstances(e.timestamp, windowSlide, windowLength);        
 
         int ii=0;
         // iterate through the substream
         foreach (var eventToJoin in subStream) {
-            var eventToJoin_WindowInstances = getWindowInstances(eventToJoin.timestamp, windowSlide, windowLength);
-            // Console.WriteLine();
-            // Console.WriteLine($"**********[Candidate] {eventToJoin.timestamp}, {Event.GetContent<Tuple<int, int>>(eventToJoin)}**********");            
-            // Console.WriteLine($"Candidate_WindowInstances: ");
-            // foreach (var e1 in eventToJoin_WindowInstances) {
-            //     Console.Write($" {e1} , ");                
-            // }
-            // Console.WriteLine();
+            var eventToJoin_WindowInstances = getWindowInstances(eventToJoin.timestamp, windowSlide, windowLength);            
             
             // get the intersection of the two window instances
             var intersection = e_WindowInstances.Intersect(eventToJoin_WindowInstances);
             int j = 0;
-            while (j < intersection.Count()) {
-                // Console.Write($"intersection[{j}] = {intersection.ElementAt(j)}   ");
+            while (j < intersection.Count()) {                
                 // do the join
                 long newTimestamp = intersection.ElementAt(j) + windowLength - 1; // as we use the start timestamp of the window instance to represent the window instance id
                 var e1 = tagEvent ? e : eventToJoin;
                 var e2 = tagEvent ? eventToJoin : e;                
-                Event joinedResult = Functions.WindowJoin(newTimestamp, e1, e2);   
-                // if (joinedResult == null) Console.WriteLine($"joinedResult = null");                                                         
+                Event joinedResult = Functions.WindowJoin(newTimestamp, e1, e2);                   
                 // send the result to the output stream
-                if (joinedResult != null) {
-                    // Console.WriteLine($"output: ts = {joinedResult.timestamp}");
-                    // Console.WriteLine($" ****** send event ******* {newTimestamp}, {Event.GetContent<Tuple<long, long, int, int>>(joinedResult)}");
+                if (joinedResult != null) {                    
                     await outputStream.OnNextAsync(joinedResult);                                                
                 }
                 j++;

@@ -137,7 +137,7 @@ internal class StreamClient
         // set up one windowed aggregate operator with one source stream
         var aggregate = client.GetGrain<IWindowAggregateOperator>("aggregate");
         var aggregatedStream = streamProvider.GetStream<Event>(StreamId.Create("aggregatedResult", Guid.NewGuid()));
-        await aggregate.Init(filteredStream, aggregatedStream, windowSlide, windowLength);
+        await aggregate.Init(filteredStream, aggregatedStream, windowSlide, windowSlide);
 
         // set up one sink operator to write the result to a local file
         var sink = client.GetGrain<ISinkOperator>("sink");
