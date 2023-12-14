@@ -13,7 +13,16 @@ public static class Functions
 
     public static Func<long, Event, Event, Event> WindowJoin = (timestamp, e1, e2) =>
     {
-        throw new NotImplementedException();
+        var tagContent = Event.GetContent<Tuple<int, int>>(e1);
+        var likeContent = Event.GetContent<Tuple<int, int>>(e2);
+        //Tag <timestamp, photoID, userID>
+        //Like <timestamp, userID, photoID>
+        bool photoIDMatch = tagContent.Item1 == likeContent.Item2;
+        bool userIDMatch = tagContent.Item2 == likeContent.Item1;        
+        if (!photoIDMatch || !userIDMatch) return null;
+        var content =  Tuple.Create(e1.timestamp, e2.timestamp, tagContent.Item1, tagContent.Item2);
+        var resEvent = Event.CreateEvent(timestamp, EventType.Regular, content);
+        return resEvent;
     };
 
     public static Func<Event, bool> Filter = e =>
@@ -23,10 +32,21 @@ public static class Functions
         return joinedResult.Item1 < joinedResult.Item2;   // user likes the photo after he/she is tagged
     };
 
-    public static Func<long, List<Event>, List<Event>> WindowAggregator = (timestamp, events) =>
-    {
-        throw new NotImplementedException();
-    };
+    // public static Func<long, List<Event>, List<Event>> WindowAggregator = (timestamp, events) =>
+    // {
+    //     // loop through events and count likes that each photo received
+    //     var photoLikes = new Dictionary<int, MyCounter>();
+    //     foreach (var e in events)
+    //     {
+    //         var joinedResult = Event.GetContent<Tuple<long, long, int, int>>(e);
+    //         var photoID = joinedResult.Item3;
+    //         if (!photoLikes.ContainsKey(photoID))
+    //         {
+    //             photoLikes[photoID] = new MyCounter();
+    //         }
+    //         photoLikes[photoID].Increment();
+    //     }
+    // };
 
     public static Func<string, Event, Null> Sink = (resultFile, e) =>
     {
@@ -34,9 +54,10 @@ public static class Functions
         {
             using (var file = new StreamWriter(resultFile, true))
             {
-                var content = Event.GetContent<Tuple<int, int>>(e);
-                Console.WriteLine($"output: ts = {e.timestamp}, photoID = {content.Item1}, count = {content.Item2}");
-                file.WriteLine($"{content.Item1} {content.Item2}");
+                // var content = Event.GetContent<Tuple<int, int>>(e);
+                // Console.WriteLine($"output: ts = {e.timestamp}, photoID = {content.Item1}, count = {content.Item2}");
+                // file.WriteLine($"{content.Item1} {content.Item2}");
+                file.WriteLine($"{e.timestamp}");
             }
         }
         return null;

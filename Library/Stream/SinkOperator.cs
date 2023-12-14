@@ -23,6 +23,10 @@ internal sealed class SinkOperator : Grain, ISinkOperator
 
     Task ProcessEvent(Event e, StreamSequenceToken _)
     {
+        // 
+        var content = Event.GetContent<Tuple<long, long, int, int>>(e);
+        Console.WriteLine($"output: ts = {e.timestamp}, content = {content}");
+        //
         Functions.Sink(resultFile, e);
         return Task.CompletedTask;
     }

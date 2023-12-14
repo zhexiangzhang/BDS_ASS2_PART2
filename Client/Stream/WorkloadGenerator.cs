@@ -201,6 +201,6 @@ internal class WorkloadGenerator
 
     long GetWatermark(long timestamp)
     {
-        throw new NotImplementedException();
+        return timestamp - 2 * randSpan - 1 ;
     }
 }

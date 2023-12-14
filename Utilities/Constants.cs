@@ -15,5 +15,6 @@ public class Constants
     public const string defaultStreamProvider = "SMSProvider";
     public const string kafkaService = "localhost:19092";
 
-    public const string dataPath = @"C:\......\BDS-Programming-Assignment-2\Data\";
+    public const string dataPath = @"..\....\..\Data\";
+    // public const string dataPath = @"E:\KU\1\BDS\Assignment\ASS2_Part2\BDS-Programming-Assignment-2-1\BDS-Programming-Assignment-2\Data\";
 }

@@ -11,12 +11,12 @@ namespace Client.Stream;
 internal class StreamClient
 {
     // If true, read data from given datasets, otherwise, generate data on-the-fly
-    static bool useTestData = false;
+    static bool useTestData = true;
     static TimeSpan maxRunTime = TimeSpan.FromSeconds(120);
 
     // If true, the source data will also be published to Kafka channels
     // Notice: need to turn on the Kafka container first
-    static bool useKafka = true;
+    static bool useKafka = false;
     
     static int randSpan = 100;
     static IClusterClient client;
@@ -130,13 +130,18 @@ internal class StreamClient
         await join.Init(tagStream, likeStream, joinedResultStream, windowSlide, windowLength);
 
         // set up one filter operator with one source stream
-        // ... ...
+        var filter = client.GetGrain<IFilterOperator>("filter");
+        var filteredStream = streamProvider.GetStream<Event>(StreamId.Create("filteredResult", Guid.NewGuid()));
+        await filter.Init(joinedResultStream, filteredStream);
 
         // set up one windowed aggregate operator with one source stream
-        // ... ...
+        // var aggregate = client.GetGrain<IWindowAggregateOperator>("aggregate");
+        // var aggregatedStream = streamProvider.GetStream<Event>(StreamId.Create("aggregatedResult", Guid.NewGuid()));
+        // await aggregate.Init(joinedResultStream, aggregatedStream, windowSlide, windowLength);
 
         // set up one sink operator to write the result to a local file
-        // ... ...
+        var sink = client.GetGrain<ISinkOperator>("sink");
+        await sink.Init(filteredStream, resultFile);
 
         Console.WriteLine($"The query topology is built. ");
     }
